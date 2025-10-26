@@ -139,7 +139,7 @@ Notes on `log_queue` for testing:
 Try-it snippet (Python):
 
 import multiprocessing
-from metrics import rampup_time_metric, performance_claims_metric, code_quality, dataset_quality
+from src.metrics import rampup_time_metric, performance_claims_metric, code_quality, dataset_quality
 
 q = multiprocessing.Queue()
 score, elapsed = rampup_time_metric.rampup_time_metric("README", 1, q)

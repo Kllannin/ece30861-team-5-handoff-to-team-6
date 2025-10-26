@@ -5,7 +5,7 @@ from unittest.mock import patch, MagicMock
 import metric_caller
 import run
 import src.url_class as url_class
-from classes import github_api, hugging_face_api, api
+from src.classes import github_api, hugging_face_api, api
 
 class TestMetricCallerFull(unittest.TestCase):
     """20 passing tests covering metric_caller.py and related modules."""

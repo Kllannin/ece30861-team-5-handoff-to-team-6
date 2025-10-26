@@ -20,7 +20,7 @@ sys.path.append(classes_path)
 
 # Now that the project root is on the path, we can import from the 'classes' package.
 # The file we are importing from is `llm_child_api.py`.
-from classes.llm_child_api import GenAiChatApi
+from src.classes.llm_child_api import GenAiChatApi
 
 def process_file_and_get_response(filename: str, instruction: str, model: str) -> str:
     """
