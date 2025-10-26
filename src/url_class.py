@@ -1,13 +1,12 @@
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, List
-
+from typing import Optional, List, Tuple
+from urllib.parse import urlparse
 
 @dataclass
 class Code:
     link: str
     namespace: str = ""
-
 
 @dataclass
 class Dataset:
@@ -24,19 +23,13 @@ class Model:
     repo: str = ""
     rev: str = ""
 
-
 @dataclass
 class ProjectGroup:
     code: Optional[Code] = None
     dataset: Optional[Dataset] = None
     model: Optional[Model] = None
 
-
-from typing import Tuple
-from urllib.parse import urlparse
-
 def parse_huggingface_url(url: str) -> Tuple[str, str, str]:
-   
     parsed = urlparse(url)
     parts = parsed.path.strip("/").split("/")
 
@@ -58,10 +51,6 @@ def parse_huggingface_url(url: str) -> Tuple[str, str, str]:
         rev = parts[3]
 
     return namespace, repo, rev
-
-from urllib.parse import urlparse
-
-from urllib.parse import urlparse
 
 def parse_dataset_url(url: str) -> str:
     """
@@ -125,9 +114,16 @@ def parse_project_file(filepath: str) -> List[ProjectGroup]:
 
             code_link, dataset_link, model_link = parts
 
-            if model_link != None and model_link != '':
-                ns, rp, rev = parse_huggingface_url(model_link) if model_link else ("", "", "main")
-            if dataset_link != None and dataset_link != '':
+            # --- defaults to avoid "possibly unbound" ---
+            ns = ""
+            rp = ""
+            rev = "main"
+            data_repo = ""
+
+            if model_link:
+                ns, rp, rev = parse_huggingface_url(model_link)
+
+            if dataset_link:
                 data_repo = parse_dataset_url(dataset_link)
 
             group = ProjectGroup(
@@ -145,7 +141,7 @@ def main():
     filepath = Path("tests/test.txt")
 
     # Parse file
-    groups = parse_project_file(filepath)
+    groups = parse_project_file(str(filepath))
 
     # Print results
     print("Parsed project groups:\n")
@@ -155,6 +151,6 @@ def main():
 
 if __name__ == "__main__":
     url = "https://huggingface.co/openai-community/gpt2"
-    ns, rp = parse_huggingface_url(url)
+    ns, rp, rev = parse_huggingface_url(url)
     print(f"Namespace: {ns}, Repo: {rp}")
     # Output: Namespace: openai-community, Repo: gpt2

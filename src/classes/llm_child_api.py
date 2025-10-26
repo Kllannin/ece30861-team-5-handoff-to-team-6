@@ -1,6 +1,7 @@
 from .api import Api
 import requests
 import os
+import json
 
 class GenAiChatApi(Api):
     """
@@ -39,38 +40,37 @@ class GenAiChatApi(Api):
         """
         payload = {
             "model": self.model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": content
-                }
-            ],
+            "messages": [{"role": "user", "content": content}],
             "stream": False
         }
 
         try:
             # Call the parent class's post method
             response_data = self.post(endpoint=self.CHAT_ENDPOINT, payload=payload)
-            
-            # Safely navigate the JSON structure to find the content
-            # response['choices'][0]['message']['content']
-            choices = response_data.get("choices")
-            if choices and isinstance(choices, list) and len(choices) > 0:
-                first_choice = choices[0]
-                message = first_choice.get("message")
-                if message and isinstance(message, dict):
-                    return message.get("content")
 
-            print("Warning: Could not find assistant's message in the API response.")
-            return None
+            # If API returned raw JSON text, parse it
+            if isinstance(response_data, str):
+                try:
+                    response_data = json.loads(response_data)
+                except Exception:
+                    return ""  # bad JSON → no content
 
-        except Exception as e:
-            #print(f"An error occurred while getting chat completion: {e}")
-            return None
+            # Only proceed if we have a dict (mapping)
+            if isinstance(response_data, dict):
+                choices = response_data.get("choices")
+                if isinstance(choices, list) and choices:
+                    first_choice = choices[0]
+                    if isinstance(first_choice, dict):
+                        message = first_choice.get("message")
+                        if isinstance(message, dict):
+                            text = message.get("content")
+                            return text if isinstance(text, str) else ""
 
+            # If structure is not as expected
+            return ""
 
-
-
+        except Exception:
+            return ""
 
 def main():
     """

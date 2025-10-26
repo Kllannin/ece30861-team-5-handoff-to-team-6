@@ -1,4 +1,3 @@
-
 import json
 import sys
 
@@ -30,37 +29,38 @@ def build_model_output(
     "code_quality":scores.get("code_quality", 0.00),
     "code_quality_latency":latency.get("code_quality", 0),
 }
-    #return output
-
     #print to stdout
     sys.stdout.write(json.dumps(output) + "\n")
 
-#testing
+# testing
 if __name__ == "__main__":
-    build_model_output( 
+    scores = {
+        "net_score": 0.82,
+        "rampup_time_metric": 0.75,
+        "bus_factor_metric": 0.60,
+        "performance_claims_metric": 0.80,
+        "calculate_license_score": 1.00,
+        "calculate_size_score": 0.90,
+        "dataset_and_code_present": 0.90,
+        "dataset_quality": 0.85,
+        "code_quality": 0.70,
+    }
+
+    latency = {
+        "net_score_latency": 1001,
+        "rampup_time_metric": 123,
+        "bus_factor_metric": 88,
+        "performance_claims_metric": 110,
+        "calculate_license_score": 95,
+        "calculate_size_score": 200,
+        "dataset_and_code_present": 130,
+        "dataset_quality": 115,
+        "code_quality": 140,
+    }
+
+    build_model_output(
         name="google/gemma-3-270m",
         category="MODEL",
-        net_score=0.82,
-        net_score_latency=1001,
-        ramp_up_time=0.75,
-        ramp_up_time_latency=123,
-        bus_factor=0.6,
-        bus_factor_latency=88,
-        performance_claims=0.8,
-        performance_claims_latency=110,
-        license=1.0,
-        license_latency=95,
-        size_score={
-            "raspberry_pi": 0.2,
-            "jetson_nano": 0.4,
-            "desktop_pc": 0.9,
-            "aws_server": 1.0,
-        },
-        size_score_latency=200,
-        dataset_and_code_score=0.9,
-        dataset_and_code_score_latency=130,
-        dataset_quality=0.85,
-        dataset_quality_latency=115,
-        code_quality=0.7,
-        code_quality_latency=140,
+        scores=scores,
+        latency=latency,
     )
