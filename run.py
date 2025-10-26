@@ -1,13 +1,13 @@
-import argparse
-import sys
-import subprocess
-import src.url_class as url_class
-import metric_caller
-from collections import defaultdict
-import time
-from src.json_output import build_model_output
 import os
+import sys
+import argparse
+import subprocess
+import time
+from collections import defaultdict
+import src.url_class as url_class
+from src.json_output import build_model_output
 from src.classes.github_api import GitHubApi
+import metric_caller
 from get_model_metrics import get_model_size, get_model_README, get_model_license
 import requests
 
@@ -107,7 +107,7 @@ def main() -> int:
     else:
         #Running URL FILE
         project_groups: list[url_class.ProjectGroup] = url_class.parse_project_file(args.target)
-        x = metric_caller.load_available_functions("metrics")
+        x = metric_caller.load_available_functions("src.metrics")
 
         for i in project_groups:
             if i.model is None:

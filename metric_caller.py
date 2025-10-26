@@ -52,7 +52,10 @@ def load_available_functions(directory: str) -> dict:
     """
     functions = {}
 
-    for filename in os.listdir(directory):
+    pkg = importlib.import_module(directory)
+    filesystem_dir = pkg.__path__[0]
+    
+    for filename in os.listdir(filesystem_dir):
         if filename.endswith('.py') and not filename.startswith('__'):
             module_name = filename[:-3]
             try:
