@@ -21,7 +21,9 @@ def code_quality(github_str: str, verbosity: int, log_queue) -> Tuple[float, flo
     pid = os.getpid()
     score = 0.0  # Default score for any failure
 
-    if verbosity >= 1:
+    output = ""
+    
+    if verbosity >= 1 and log_queue:
         log_queue.put(f"[{pid}] Running PyLint on '{os.path.basename(github_str)}'...")
 
     try:
@@ -47,24 +49,25 @@ def code_quality(github_str: str, verbosity: int, log_queue) -> Tuple[float, flo
                         # Scale the score (e.g., 8.56) to be between 0.0 and 1.0
                         score = float(score_str) / 10.0
                         found_score = True
-                        if verbosity >= 1:
+                        if verbosity >= 1 and log_queue:
                             log_queue.put(f"[{pid}] Found PyLint score for '{os.path.basename(github_str)}': {score*10:.2f}/10")
                         break  # Inner loop
                 if found_score:
                     break  # Outer loop
         
         if not found_score:
-            log_queue.put(f"[{pid}] [WARNING] Could not find PyLint score line in output for '{github_str}'.")
+            if log_queue:
+                log_queue.put(f"[{pid}] [WARNING] Could not find PyLint score line in output for '{github_str}'.")
             if verbosity >= 2:
                 log_queue.put(f"[{pid}] [DEBUG] PyLint output for '{github_str}':\n---BEGIN---\n{output}\n---END---")
 
     except FileNotFoundError:
-        if verbosity >0:
+        if verbosity >0 and log_queue:
             log_queue.put(f"[{pid}] [CRITICAL ERROR] 'pylint' command not found. Is PyLint installed and in the system's PATH?")
     except Exception as e:
-        if verbosity >0:
+        if verbosity >0 and log_queue:
             log_queue.put(f"[{pid}] [CRITICAL ERROR] running PyLint on '{github_str}': {e}")
-        if verbosity >= 2:
+        if verbosity >= 2 and log_queue:
             # The captured output might be useful for debugging the exception
             log_queue.put(f"[{pid}] [DEBUG] PyLint output for '{github_str}':\n---BEGIN---\n{output}\n---END---")
     
@@ -74,5 +77,5 @@ def code_quality(github_str: str, verbosity: int, log_queue) -> Tuple[float, flo
     return score, time_taken
 
 if __name__ == "__main__":
-    score = get_pylint_score("./classes/api.py")
+    score, _ = code_quality("./classes/api.py", verbosity=0, log_queue=None)
     print("PyLint code quality score:", score)

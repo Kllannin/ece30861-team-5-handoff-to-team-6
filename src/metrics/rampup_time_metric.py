@@ -31,13 +31,14 @@ def rampup_time_metric(filename: str, verbosity: int, log_queue) -> Tuple[float,
 
     instruction = "Given the following readme, give a number from 0 to 1.0, with 1 being the best, on what the 'ramp-up' time of this model would be for a brand new engineer. Take into account things like the descriptions and examples given in the readme to make the score. ONLY PROVIDE A SINGLE NUMBER, NO OTHER TEXT SHOULD BE IN THE RESPONSE. IT SHOULD BE DIRECTLY CONVERTABLE TO A FLOAT:\n\n"
 
+    score = 0.0  # Default to 0.0 for failure cases
+    llm_response_str = None
+    
     try:
         if verbosity >= 1: # Informational
             log_queue.put(f"[{pid}] [INFO] Calling LLM for ramp-up time on '{os.path.basename(filename)}'...")
 
         llm_response_str = process_file_and_get_response(filename, instruction, "gemma3:1b")
-
-        score = 0.0  # Default to 0.0 for failure cases
 
         # Safely convert the LLM's string response to a float
         if llm_response_str is not None:

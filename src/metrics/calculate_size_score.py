@@ -10,6 +10,8 @@ def calculate_size_score(model_size_bytes: int, verbosity: int, log_queue) -> Tu
     pid = os.getpid()
     start_time = time.perf_counter()
     
+    scores: Dict[str, float] = {}  # <-- ensure it's always defined
+    
     try:
         if verbosity >= 1: # Informational
             log_queue.put(f"[{pid}] [INFO] Starting size score calculation for model of {model_size_bytes} bytes...")
