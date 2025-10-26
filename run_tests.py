@@ -44,7 +44,7 @@ def main():
     try:
         cov.report(file=io.StringIO())
         coverage_percent = cov.report(file=io.StringIO())
-    except coverage.misc.CoverageException:
+    except Exception:
         coverage_percent = 0.0
 
     # Restore stdout and stderr
@@ -56,11 +56,8 @@ def main():
     }
     print(json.dumps(output))
 
-    return 0
-
     # Exit code = 0 if all tests pass, nonzero otherwise
-    sys.exit(not result.wasSuccessful())
+    return 0 if result.wasSuccessful() else 1
 
 if __name__ == "__main__":
-    main()
-    return 0
+    sys.exit(main())

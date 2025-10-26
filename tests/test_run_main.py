@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch, mock_open
 import run
-import url_class
+import src.url_class as url_class
 import tempfile
 import multiprocessing
 import os
@@ -9,8 +9,8 @@ import sys
 from pathlib import Path
 import io  # for StringIO
 import json
-import json_output
-from url_class import Code, Dataset, Model, ProjectGroup
+import src.json_output as json_output
+from src.url_class import Code, Dataset, Model, ProjectGroup
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import metric_caller as mc

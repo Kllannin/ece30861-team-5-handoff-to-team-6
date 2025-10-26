@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 
 import metric_caller
 import run
-import url_class
+import src.url_class as url_class
 from classes import github_api, hugging_face_api, api
 
 class TestMetricCallerFull(unittest.TestCase):

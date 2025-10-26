@@ -1,12 +1,12 @@
 import argparse
 import sys
 import subprocess
-import url_class
+import src.url_class as url_class
 import metric_caller
 from collections import defaultdict
 import metric_caller
 import time
-from json_output import build_model_output
+from src.json_output import build_model_output
 import os
 from get_model_metrics import get_model_size
 

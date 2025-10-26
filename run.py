@@ -1,15 +1,14 @@
 import argparse
 import sys
 import subprocess
-import url_class
+import src.url_class as url_class
 import metric_caller
 from collections import defaultdict
 import time
-from json_output import build_model_output
+from src.json_output import build_model_output
 import os
-from classes.github_api import GitHubApi
+from src.classes.github_api import GitHubApi
 from get_model_metrics import get_model_size, get_model_README, get_model_license
-
 import requests
 
 
@@ -35,20 +34,13 @@ def validate_log_file_path(path: str) -> bool:
         return False
     return True
 
-
 def main() -> int:
     start_time = time.time()
-
-
-
 
     log_level_str = os.getenv('LOG_LEVEL')
     log_file_path = os.getenv('LOG_FILE')
     github_token = os.getenv("GITHUB_TOKEN")
     gen_ai_key = os.getenv('GEN_AI_STUDIO_API_KEY') # Used by a child module
-
-    
-
 
     GitHubApi.verify_token(github_token)
     
@@ -100,7 +92,6 @@ def main() -> int:
 
     args = parser.parse_args()
 
-
     # --- dispatch logic ---
     if args.target == "install":
         # if args.verbose:
@@ -117,36 +108,58 @@ def main() -> int:
         #Running URL FILE
         project_groups: list[url_class.ProjectGroup] = url_class.parse_project_file(args.target)
         x = metric_caller.load_available_functions("metrics")
+
         for i in project_groups:
-            
-            size = get_model_size(i.model.namespace, i.model.repo, i.model.rev)
-            filename = get_model_README(i.model.namespace, i.model.repo, i.model.rev)
-            license = get_model_license(i.model.namespace, i.model.repo, i.model.rev)
+            if i.model is None:
+                if args.verbose:
+                    print("Skipping a project with no model info.")
+                continue
+
+            namespace = i.model.namespace
+            repo = i.model.repo
+            rev = i.model.rev or "main"
+
+            if namespace is None or repo is None:
+                if args.verbose:
+                    print("Skipping a project with missing namespace/repo.")
+                continue
+
+            size = get_model_size(namespace, repo, rev)
+            filename = get_model_README(namespace, repo, rev)
+            license_value = get_model_license(namespace, repo, rev)
+
+            # Safely build github_str
+            github_str = ""
+            code_obj = getattr(i, "code", None)
+            if code_obj is not None:
+                code_link = getattr(code_obj, "link", None)
+                if isinstance(code_link, str):
+                    github_str = code_link
+
+            # Safely build dataset_name
+            dataset_name = ""
+            dataset_obj = getattr(i, "dataset", None)
+            if dataset_obj is not None:
+                dataset_repo = getattr(dataset_obj, "repo", None)
+                if isinstance(dataset_repo, str):
+                    dataset_name = dataset_repo
 
             input_dict = {
-                "repo_owner": i.model.namespace,
-                "repo_name": i.model.repo,
+                "repo_owner": namespace,
+                "repo_name": repo,
                 "verbosity": int(log_level_str),
                 "log_queue": log_file_path,
                 "model_size_bytes": size,
-                "github_str": f"{i.code.link}",  # New parameter for GitHub repo
-                "dataset_name": f"{i.dataset.repo}",  # New parameter for dataset name
-                "filename" : filename,
-                "license" : license
+                "github_str": github_str,
+                "dataset_name": dataset_name,
+                "filename": filename,
+                "license": license_value,
             }
 
-            
-            scores,latency = metric_caller.run_concurrently_from_file("./tasks.txt",input_dict,x,log_file_path)
-            
-            build_model_output(f"{i.model.repo}","model",scores,latency)
+            scores, latency = metric_caller.run_concurrently_from_file("./tasks.txt", input_dict, x, log_file_path)
+            build_model_output(f"{repo}", "model", scores, latency)
     
     return 0
 
-
-
-
-
 if __name__ == "__main__":
     main()
-
-
