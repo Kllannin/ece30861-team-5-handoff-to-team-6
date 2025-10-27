@@ -1,4 +1,6 @@
 from src.classes.hugging_face_api import HuggingFaceApi  # adjust import to where your class is saved
+from typing import Optional
+import requests
 
 def get_model_size(namespace: str, repo: str, rev: str = "main") -> float:
     api = HuggingFaceApi(namespace, repo, rev)
