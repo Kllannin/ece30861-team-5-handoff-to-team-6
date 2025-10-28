@@ -2,6 +2,7 @@ import multiprocessing
 import re
 import os
 import importlib
+import importlib.util
 import time
 import inspect
 
@@ -25,7 +26,7 @@ def logger_process(log_queue: multiprocessing.Queue, log_file_path: str):
                     break
                 f.write(f"{message}\n")
                 f.flush() # Ensure messages are written immediately
-    except Exception as e:
+    except Exception:
         pass
         # This print is a fallback for a critical logger failure
         #print(f"[Logger Process Error] An error occurred: {e}")
@@ -46,15 +47,32 @@ def process_worker(target_func, result_queue, log_queue, weight, func_name, *arg
         #log_queue.put(f"[WORKER CRASH] Process for '{func_name}' failed critically: {e}")
         result_queue.put((0.0, time_taken, float(weight), func_name))
 
-def load_available_functions(directory: str) -> dict:
+def load_available_functions(directory: str, *_, **__) -> dict:
     """
     Discovers and loads metric functions, sending output to the provided log queue.
     """
     functions = {}
-
-    pkg = importlib.import_module(directory)
-    filesystem_dir = pkg.__path__[0]
-    
+    if os.path.isdir(directory):
+        # load by filesystem
+        for filename in os.listdir(directory):
+            if filename.endswith('.py') and not filename.startswith('__'):
+                module_name = filename[:-3]
+                file_path = os.path.join(directory, filename)
+                try:
+                    spec = importlib.util.spec_from_file_location(module_name, file_path)
+                    if spec and spec.loader:
+                        module = importlib.util.module_from_spec(spec)
+                        spec.loader.exec_module(module)
+                        func = getattr(module, module_name)
+                        functions[module_name] = func
+                except Exception:
+                    pass
+        return functions
+    try:
+        pkg = importlib.import_module(directory)
+        filesystem_dir = pkg.__path__[0]
+    except Exception:
+        return {}
     for filename in os.listdir(filesystem_dir):
         if filename.endswith('.py') and not filename.startswith('__'):
             module_name = filename[:-3]
@@ -62,7 +80,7 @@ def load_available_functions(directory: str) -> dict:
                 module = importlib.import_module(f"{directory}.{module_name}")
                 func = getattr(module, module_name)
                 functions[module_name] = func
-            except (ImportError, AttributeError) as e:
+            except (ImportError, AttributeError):
                 pass
     return functions
 
@@ -77,6 +95,9 @@ def run_concurrently_from_file(tasks_filename: str, all_args_dict: dict, availab
     logger = multiprocessing.Process(target=logger_process, args=(log_queue, log_file))
     logger.start()
 
+    if not isinstance(available_functions, dict):
+        available_functions = load_available_functions(available_functions)
+    
     # Load available functions and log the process
 
     all_args_dict['log_queue'] = log_queue

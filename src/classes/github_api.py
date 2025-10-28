@@ -2,9 +2,7 @@ from .api import Api
 import typing
 import requests
 from os import getenv
-from sys import exit
-import configparser
-from typing import Optional
+from typing import Optional, Dict
 
 class GitHubApi(Api) :
     """
@@ -44,7 +42,7 @@ class GitHubApi(Api) :
     BASE_URL: str = "https://api.github.com"
     ENDPOINT: typing.Dict[str, str] = {
         "verify_token": "/user",
-        "repo_content": "/repose/{owner}/{repo}/contents/{path}",
+        "repo_content": "/repos/{owner}/{repo}/contents/{path}",
         "readme": "/repos/{owner}/{repo}/readme",
         "pull_requests": "/repos/{owner}/{repo}/pulls"
         # Add more endpoints as needed
@@ -62,25 +60,22 @@ class GitHubApi(Api) :
             
 
     @staticmethod
-    def verify_token(github_token: Optional[str]) :
-        endpoint:str = GitHubApi.ENDPOINT['verify_token']
-        url:str = GitHubApi.BASE_URL + endpoint
+    def verify_token(github_token: Optional[str]) -> None:
+        # endpoint:str = GitHubApi.ENDPOINT['verify_token']
+        # url:str = GitHubApi.BASE_URL + endpoint
         if github_token is None:
-            # log non-existant github token
-            exit(1)
+            raise ValueError("Missing GitHub token")
+        
+        url: str = GitHubApi.BASE_URL + GitHubApi.ENDPOINT["verify_token"]
+        headers: Dict[str, typing.Any] = {"Authorization": f"token {github_token}"}
 
-        headers: Optional[dict[str, typing.Any]] = {}
-        headers["Authorization"] = f"Bearer {github_token}"
-
-        resp: requests.Response = requests.get(
-            url=url,
-            headers=headers,
-            timeout=Api._TIMEOUT
-        )
+        try:
+            resp: requests.Response = requests.get(url=url, headers=headers, timeout=Api._TIMEOUT)
+        except requests.RequestException as e:
+            raise RuntimeError(f"GitHub token check failed: {e}") from e
 
         if resp.status_code == 401:
-            # Invalid github token
-            exit(1)
+            raise ValueError("Invalid GitHub token")
         
     def build_endpoint(self, endpoint: str, path: str = "", filename: str = "") -> str:
         endpoint_temp: Optional[str] = self.ENDPOINT.get(endpoint)
@@ -105,6 +100,3 @@ class GitHubApi(Api) :
 
         resp = self.get(url, payload=payload)
         return resp
-
-
-

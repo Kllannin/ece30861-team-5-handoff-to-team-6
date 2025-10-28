@@ -32,24 +32,12 @@ class ProjectGroup:
 def parse_huggingface_url(url: str) -> Tuple[str, str, str]:
     parsed = urlparse(url)
     parts = parsed.path.strip("/").split("/")
-
-    if len(parts) < 1:
+    if len(parts) < 2:
         raise ValueError(f"Invalid Hugging Face URL: {url}")
-    
-    if len(parts) == 1:
-        repo = parts[0]
-        namespace = url.strip("/").split("-")[0]
-        rev = "main"
-        return namespace, repo, rev
-
-    namespace = parts[0]
-    repo = parts[1]
+    namespace, repo = parts[0], parts[1]
     rev = "main"
-
-    # If the URL has /tree/<rev>, capture it
     if len(parts) >= 4 and parts[2] == "tree":
         rev = parts[3]
-
     return namespace, repo, rev
 
 def parse_dataset_url(url: str) -> str:
@@ -123,18 +111,24 @@ def parse_project_file(filepath: str) -> List[ProjectGroup]:
             if model_link:
                 ns, rp, rev = parse_huggingface_url(model_link)
 
+            code = Code(code_link) if code_link else None
+
+            dataset = None
             if dataset_link:
                 data_repo = parse_dataset_url(dataset_link)
-
-            group = ProjectGroup(
-                code=Code(code_link),
-                dataset=Dataset(dataset_link, namespace="", repo=data_repo, rev=""),
-                model=Model(model_link, ns, rp, rev),
-            )
+                dataset = Dataset(dataset_link, namespace="", repo=data_repo, rev="")
+            
+            model = None
+            if model_link:
+                ns, rp, rev = parse_huggingface_url(model_link)
+                model = Model(model_link, ns, rp, rev)
+            
+            group = ProjectGroup(code=code, dataset=dataset, model=model)
             project_groups.append(group)
 
     return project_groups
 
+parse_hf_dataset_url_repo = parse_dataset_url
 
 def main():
     # Point to your test file
