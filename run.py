@@ -149,7 +149,8 @@ def main() -> int:
             repo = i.model.repo
             rev = i.model.rev or "main"
 
-            if namespace is None or repo is None:
+            # Skip if namespace or repo is missing or empty
+            if not namespace or not repo:
                 if args.verbose:
                     print("Skipping a project with missing namespace/repo.")
                 continue
@@ -174,11 +175,11 @@ def main() -> int:
                 if isinstance(dataset_repo, str):
                     dataset_name = dataset_repo
 
+            # Build an input dictionary for metric functions
             input_dict = {
                 "repo_owner": namespace,
                 "repo_name": repo,
                 "verbosity": verbosity,
-                "log_queue": resolved_log_file_path,
                 "model_size_bytes": size,
                 "github_str": github_str,
                 "dataset_name": dataset_name,
@@ -186,6 +187,7 @@ def main() -> int:
                 "license": license_value,
             }
 
+            # Run all metrics defined in tasks.txt using the available functions
             scores, latency = metric_caller.run_concurrently_from_file(
                 "./tasks.txt", input_dict, x, resolved_log_file_path
             )

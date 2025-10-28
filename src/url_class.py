@@ -30,12 +30,24 @@ class ProjectGroup:
     model: Optional[Model] = None
 
 def parse_huggingface_url(url: str) -> Tuple[str, str, str]:
+    """
+    Parse a Hugging Face model URL and return (namespace, repo, rev).
+
+    The path format is typically `/namespace/repo` or `namespace/repo/tree/rev`.
+
+    If the URL is missing a namespace or repo part, this function returns empty string.
+    The revision defaults to "main" unless a `/tree/<rev>` segment is present.
+    """
     parsed = urlparse(url)
     parts = parsed.path.strip("/").split("/")
+
+    # Require at least namespace and repo. Return empty strings if not present
     if len(parts) < 2:
-        raise ValueError(f"Invalid Hugging Face URL: {url}")
+        return "", "", ""
     namespace, repo = parts[0], parts[1]
     rev = "main"
+
+    # Detect a revision in URLs like `/namespace/repo/tree/<rev>`
     if len(parts) >= 4 and parts[2] == "tree":
         rev = parts[3]
     return namespace, repo, rev
@@ -58,17 +70,24 @@ def parse_dataset_url(url: str) -> str:
     """
     parsed = urlparse(url)
 
-    # Hugging Face case
+    # Case: Hugging Face dataset
     if "huggingface.co" in parsed.netloc:
         parts = parsed.path.strip("/").split("/")
-        if len(parts) < 2 or parts[0] != "datasets":
-            raise ValueError(f"Invalid Hugging Face dataset URL: {url}")
-        return parts[-1]  # only the repo name, e.g. "imdb"
+        # Expect `datasets/<...>`, but could be different
+        if parts:
+            # If the first segment is 'datasets', use the last part as the repo name
+            if parts[0] == "datasets":
+                return parts[-1] if parts else ""
+            # If the path does not start with 'datasets', still return last part
+            return parts[-1] if parts else ""
+        # No path segments -> return empty string
+        return ""
 
-    # GitHub case
+    # Case: GitHub dataset
     if "github.com" in parsed.netloc:
         return url  # keep full URL for git clone
 
+    # Case: Unknown host
     raise ValueError(f"Unsupported dataset URL: {url}")
     
 
@@ -89,42 +108,46 @@ def parse_project_file(filepath: str) -> List[ProjectGroup]:
     project_groups: List[ProjectGroup] = []
     path = Path(filepath)
 
+    # Read the project file line by line. Each line is comma-separated:
+    # code_link,dataset_link,model_link. Missing entries are treated as empty.
     with path.open("r", encoding="ASCII") as f:
-        for line in f:
-            line = line.strip()
+        for raw_line in f:
+            line = raw_line.strip()
             if not line:  # skip empty lines
                 continue
-
+            # Split into up to three parts and pad with empty strings
             parts = [p.strip() for p in line.split(",")]
-            # Pad with None if fewer than 3 entries
             while len(parts) < 3:
                 parts.append("")
-
             code_link, dataset_link, model_link = parts
 
-            # --- defaults to avoid "possibly unbound" ---
-            ns = ""
-            rp = ""
-            rev = "main"
-            data_repo = ""
-
-            if model_link:
-                ns, rp, rev = parse_huggingface_url(model_link)
-
-            code = Code(code_link) if code_link else None
-
-            dataset = None
+            code: Optional[Code] = None
+            dataset: Optional[Dataset] = None
+            model: Optional[Model] = None
+            
+            # Code link: store as is if non-empty
+            if code_link:
+                code = Code(code_link)
+            
+            # Dataset link: parse via helper, on failure leave as None
             if dataset_link:
-                data_repo = parse_dataset_url(dataset_link)
-                dataset = Dataset(dataset_link, namespace="", repo=data_repo, rev="")
-            
-            model = None
+                try:
+                    dataset_repo = parse_dataset_url(dataset_link)
+                    dataset = Dataset(dataset_link, namespace="",
+                    repo=dataset_repo, rev="")
+                except Exception:
+                    dataset = None
+
+            # Model link: parse Hugging Face URL, on failure leave as None
             if model_link:
-                ns, rp, rev = parse_huggingface_url(model_link)
-                model = Model(model_link, ns, rp, rev)
-            
-            group = ProjectGroup(code=code, dataset=dataset, model=model)
-            project_groups.append(group)
+                try:
+                    ns, rp, rev = parse_huggingface_url(model_link)
+                    model = Model(model_link, ns, rp, rev)
+                except Exception:
+                    model = None
+                
+            project_groups.append(ProjectGroup(code=code, dataset=dataset,
+            model=model))
 
     return project_groups
 

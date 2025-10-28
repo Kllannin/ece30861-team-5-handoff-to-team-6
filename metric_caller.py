@@ -18,7 +18,7 @@ def logger_process(log_queue: multiprocessing.Queue, log_file_path: str):
     """
     try:
         with open(log_file_path, 'w', encoding='ASCII') as f:
-           #f.write(f"--- Log started at {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
+            #f.write(f"--- Log started at {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n")
             while True:
                 message = log_queue.get()
                 if message is None: # A 'None' message is our signal to stop
@@ -30,7 +30,6 @@ def logger_process(log_queue: multiprocessing.Queue, log_file_path: str):
         pass
         # This print is a fallback for a critical logger failure
         #print(f"[Logger Process Error] An error occurred: {e}")
-
 
 def process_worker(target_func, result_queue, log_queue, weight, func_name, *args):
     """
@@ -197,4 +196,3 @@ def run_concurrently_from_file(tasks_filename: str, all_args_dict: dict, availab
     logger.join()
     
     return scores_dictionary, times_dictionary
-

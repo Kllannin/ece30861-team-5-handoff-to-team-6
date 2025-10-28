@@ -3,13 +3,20 @@ from typing import Optional
 import requests
 
 def get_model_size(namespace: str, repo: str, rev: str = "main") -> float:
-    api = HuggingFaceApi(namespace, repo, rev)
-    # api.set_bearer_token_from_file("token.ini")  # <-- load token here
-
-    files_info = api.get_model_files_info()
-    total_size = float(sum((f["size"] or 0) for f in files_info))
-
-    return total_size
+    """
+    Calculate the total size (bytes) of all files in a Hugging Face model.
+    
+    If any API call fails, return 0.0
+    """
+    try:
+        api = HuggingFaceApi(namespace, repo, rev)
+        files_info = api.get_model_files_info()
+        # Sum file sizes, missing sizes are zero
+        total_size = float(sum((f.get("size") or 0) for f in files_info))
+        return total_size
+    except Exception:
+        # On failure, return zero (inaccessible/missing model)
+        return 0.0
 
 def get_model_README(namespace: str, repo: str, rev: str = "main") -> str:
     api = HuggingFaceApi(namespace, repo, rev)
@@ -114,7 +121,6 @@ def _get_license_from_readme(namespace: str, repo: str, rev: str) -> Optional[st
         if response.status_code == 200:
             readme_text = response.text
             # Simple license extraction from README
-            # (You could use your existing license parsing logic here)
             if "license" in readme_text.lower():
                 # Extract license section - simplified example
                 lines = readme_text.split('\n')
